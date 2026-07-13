@@ -55,7 +55,7 @@ def test_style_instance(func, nom_test, config, nb_tests=3):
 
 if __name__ == "__main__":
     print("==================================================")
-    print("DÉMARRAGE DE LA CAMPAGNE DE BENCHMARK LWE")
+    print("DÉMARRAGE DU BENCHMARK POUR LWE")
     print("==================================================")
     
     NOMBRE_DE_TESTS = 2
@@ -86,4 +86,4 @@ if __name__ == "__main__":
         df_ligne.to_csv(nom_fichier, mode='a', header=not os.path.exists(nom_fichier), index=False)
     
     print("==================================================")
-    print(f"CAMPAGNE TERMINÉE AVEC SUCCÈS !")
+    print(f"BENCHMARK TERMINÉ!")
