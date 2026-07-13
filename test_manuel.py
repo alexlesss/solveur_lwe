@@ -1,6 +1,5 @@
 import numpy as np
 
-# Importe ton solveur
 from solveur import solve_lwe 
 
 if __name__ == "__main__":
