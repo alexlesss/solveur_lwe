@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 
@@ -51,3 +52,38 @@ def test_style_instance(func, nom_test, config, nb_tests=3):
         "nodes_count": int(np.round(stat_nodes)), 
         "statut": statut
     }
+
+if __name__ == "__main__":
+    print("==================================================")
+    print("DÉMARRAGE DE LA CAMPAGNE DE BENCHMARK LWE")
+    print("==================================================")
+    
+    NOMBRE_DE_TESTS = 2
+
+    # Valeurs itérées
+    valeurs_m = [15, 20, 25, 30, 35, 40] 
+    # Valeurs fixes (au besoin, si pas deja fixew)
+    
+    for m_val in valeurs_m:
+        # Préparation des arguments selon le type de test
+        config = {"m": m_val}
+        label = f"m_mobile (m={m_val})"
+        
+        print(f"Lancement de {label}...")
+        
+        # On roule le test et on accumule la ligne de stats
+        ligne_resultat = test_style_instance(
+            func=m_mobile,
+            nom_test=label,  
+            config=config, 
+            nb_tests=NOMBRE_DE_TESTS
+        )
+        
+        print(f"  -> Terminé. t calculé = {ligne_resultat['t']} | Runtime moyen = {ligne_resultat['runtime']}s | Statut = {ligne_resultat['statut']} | Nombre de nodes = {ligne_resultat['nodes_count']}\n")
+        
+        df_ligne = pd.DataFrame([ligne_resultat])
+        nom_fichier = "resultats_bench.csv"
+        df_ligne.to_csv(nom_fichier, mode='a', header=not os.path.exists(nom_fichier), index=False)
+    
+    print("==================================================")
+    print(f"CAMPAGNE TERMINÉE AVEC SUCCÈS !")

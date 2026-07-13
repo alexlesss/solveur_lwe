@@ -20,7 +20,7 @@ from sympy import Matrix
 # résoudre le problème.
 # Nous intialisons aussi un paramètre de limite de temps, qui sera fixé à 30 minutes, 
 # donc 1800 secondes. Il est en paramètre pour une raison de flexibilité.
-def solve_lwe(A,b,q,t, time_limit=1800):
+def solve_lwe(A,b,q,t, time_limit=1300):
     
     # Allons chercher la taille du problème pour commencer:
     m, n = A.shape
@@ -69,6 +69,7 @@ def solve_lwe(A,b,q,t, time_limit=1800):
 
     # Terminons notre modèle en y ajoutant la fonction à minimiser.
     modele.setObjective(gp.quicksum(x[k]*x[k] for k in range (m)), GRB.MINIMIZE)
+    modele.setParam('OutputFlag', 0)
     modele.optimize()
 
     nodes = modele.NodeCount
