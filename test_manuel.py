@@ -1,6 +1,6 @@
 import numpy as np
 
-from solveur import solve_lwe 
+from solveurs import solve_lwe 
 
 if __name__ == "__main__":
     # 
@@ -20,7 +20,7 @@ if __name__ == "__main__":
         [ 6,  7, 16,  2]
     ])
 
-    # ainisi que le vecteur public de l'exemple
+    # ainsi que le vecteur public de l'exemple
     b = np.array([8, 16, 3, 12, 9, 16, 3])
 
     s_reel = np.array([0, 13, 9, 11])

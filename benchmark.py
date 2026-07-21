@@ -1,11 +1,11 @@
 import os
 import numpy as np
 import pandas as pd
-
-from gen_instance import gen_instance
 from test_auto import verifier_solution
-from solveur import solve_lwe
-from gen_parametres import *
+from solveurs import *
+from generation import *
+
+# Notre fichier de benchmark est malheureusement manuel, il pourrait etre interessant de creer une interface.
 
 def test_style_instance(func, nom_test, config, nb_tests=3):
     m, n, q, t = func(**config)
@@ -14,9 +14,10 @@ def test_style_instance(func, nom_test, config, nb_tests=3):
     nodes = []
     succces = []
 
-    for _ in range(nb_tests):
+    tests_valides = 0
+    while tests_valides < nb_tests:
         try:
-            A, b, q ,t, s, e = gen_instance(m, n, q, t)
+            A, b, q, t, s, e = gen_instance_fixe(m, n, q, t)
             s_hat, e_hat, nodes_exp, runtime = solve_lwe(A, b, q, t)
 
             if s_hat is not None:
@@ -28,6 +29,8 @@ def test_style_instance(func, nom_test, config, nb_tests=3):
                 runtimes.append(runtime)
                 nodes.append(nodes_exp)
                 succces.append(False)
+            
+            tests_valides += 1
 
         except ValueError:
             print("A_0 pas inversible et donc ignoree")
@@ -58,11 +61,11 @@ if __name__ == "__main__":
     print("DÉMARRAGE DU BENCHMARK POUR LWE")
     print("==================================================")
     
-    NOMBRE_DE_TESTS = 2
+    NOMBRE_DE_TESTS = 1
 
     # Valeurs itérées
-    valeurs_m = [15, 20, 25, 30, 35, 40] 
-    # Valeurs fixes (au besoin, si pas deja fixew)
+    valeurs_m = [10, 15, 20, 100, 125, 150] 
+    # Valeurs fixes (au besoin, si pas deja fixe dans generateur)
     
     for m_val in valeurs_m:
         # Préparation des arguments selon le type de test
