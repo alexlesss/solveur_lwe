@@ -18,7 +18,7 @@ def test_instance(func, nom_test, config, seeds):
     for seed in seeds:
         try:
             A, b, q, t, s, e = gen_instance_cbd(m, n, q, t, seed)
-            s_hat, e_hat, nodes_exp, runtime = solve_lwe(A, b, q, t)
+            s_hat, e_hat, nodes_exp, runtime = solve_lwe_cmod(A, b, q, t)
 
             if s_hat is not None:
                 valide = verifier_solution(s, e, s_hat, e_hat)
@@ -35,7 +35,9 @@ def test_instance(func, nom_test, config, seeds):
                 "t": t,
                 "seed": str(seed),  
                 "runtime": round(runtime, 4), 
+                "runtime_median": None, 
                 "nodes_count": int(nodes_exp), 
+                "nodes_median": None,   
                 "statut": statut
             })
             
@@ -47,14 +49,17 @@ def test_instance(func, nom_test, config, seeds):
             print(f"Seed {seed} : A_0 pas inversible et donc ignorée")
             resultats_detailles.append({
                 "experience": nom_test, "m": m, "n": n, "q": q, "t": t, 
-                "seed": str(seed), "runtime": None, "nodes_count": None, "statut": "erreur_generation"
+                "seed": str(seed), "runtime": None, "runtime_median": None, 
+                "nodes_count": None, "nodes_median": None, "statut": "erreur_generation"
             })
             continue
             
     if runtimes: 
         tous_bons = all(succces)
         stat_runtime = np.mean(runtimes) if tous_bons else np.max(runtimes)
+        stat_runtime_median = np.median(runtimes) if tous_bons else np.max(runtimes)
         stat_nodes = np.mean(nodes) if tous_bons else np.max(nodes)
+        stat_nodes_median = np.median(nodes) if tous_bons else np.max(nodes)
         statut_moyen = "resolu" if tous_bons else "non_resolu"
         
         resultats_detailles.append({
@@ -64,8 +69,10 @@ def test_instance(func, nom_test, config, seeds):
             "q": q,
             "t": t,
             "seed": "MOYENNE",
-            "runtime": round(stat_runtime, 4), 
-            "nodes_count": int(np.round(stat_nodes)), 
+            "runtime": round(stat_runtime, 4),               
+            "runtime_median": round(stat_runtime_median, 4), 
+            "nodes_count": int(np.round(stat_nodes)),        
+            "nodes_median": int(np.round(stat_nodes_median)),
             "statut": statut_moyen
         })
             
@@ -76,13 +83,15 @@ if __name__ == "__main__":
     print("DÉMARRAGE DU BENCHMARK POUR LWE")
     print("==================================================")
     
-    SEEDS_A_TESTER = [42, 123, 999]
+    SEEDS_A_TESTER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]  
     # si on souhaite de l'alea, simplement decommenter la ligne suivante et commenter la precedente
     # SEEDS_A_TESTER = [np.random.randint(0, 10000) for _ in range(3)]
-
-
-    valeurs_m = [20, 25, 30, 35] 
     
+    valeurs_m = [16, 17, 18, 19, 20] 
+
+    # Cette option active ou desactive les details de chaque seed dans le CSV. 
+    # Si False, seul la ligne moyenne est sauvegardée.
+    SAUVEGARDER_DETAILS_CSV = True
     nom_fichier = "resultats_bench.csv"
 
     for m_val in valeurs_m:
@@ -101,12 +110,19 @@ if __name__ == "__main__":
         # Affichage structuré dans le terminal
         for ligne in lignes_resultats:
             if ligne['seed'] == "MOYENNE":
-                print(f"  => BILAN GLOBAL : Runtime moyen = {ligne['runtime']}s | Statut = {ligne['statut']} | Nodes = {ligne['nodes_count']}\n")
+                print(f"  => BILAN GLOBAL : Runtime moyen = {ligne['runtime']}s (Médiane: {ligne['runtime_median']}s) | Statut = {ligne['statut']} | Nodes = {ligne['nodes_count']}\n")
+            #Il est encore possible de commenter la ligne suivante si on ne veut pas afficher les resultats de chaque seed.
             else:
                 print(f"  -> Seed {ligne['seed']} | Runtime = {ligne['runtime']}s | Statut = {ligne['statut']} | Nodes = {ligne['nodes_count']}")
+
+        if not SAUVEGARDER_DETAILS_CSV:
+            # On recrée une liste qui ne contient que le dictionnaire où la seed est "MOYENNE"
+            lignes_a_sauvegarder = [ligne for ligne in lignes_resultats if ligne['seed'] == "MOYENNE"]
+        else:
+            # On garde toute la liste
+            lignes_a_sauvegarder = lignes_resultats
         
-        # Sauvegarde de tout le bloc (incluant la ligne moyenne) dans le CSV
-        df_lignes = pd.DataFrame(lignes_resultats)
+        df_lignes = pd.DataFrame(lignes_a_sauvegarder)
         df_lignes.to_csv(nom_fichier, mode='a', header=not os.path.exists(nom_fichier), index=False)
     
     print("==================================================")

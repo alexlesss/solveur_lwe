@@ -112,8 +112,8 @@ def solve_lwe_cmod(A, b, q, t, time_limit=300):
     W = (A_1 @ A_0inv) % q
     u = (b_1 - W @ b_0) % q
 
-    # 1. Centrage modulaire 
-    # Ramène les coefficients de [0, q-1] vers [-q/2, q/2]
+    # Centrage modulaire 
+    # Ramène les coefficients de [0, q-1] vers [-(q-1)/2, (q-1)/2]
     W = np.where(W > q//2, W - q, W)
     u = np.where(u > q//2, u - q, u)
 
@@ -134,7 +134,6 @@ def solve_lwe_cmod(A, b, q, t, time_limit=300):
 
     # Posons maintenant les contraintes
     for i in range(m_n):
-        # On utilise le W centré qui préserve l'indépendance des variables
         cote_gauche_eq = gp.quicksum(W[i, j] * x[j] for j in range(n)) - x[n+i] + q * f[i]
         cote_droit_eq = -u[i]
         modele.addConstr(cote_gauche_eq == cote_droit_eq, name=f"eq_{i}")

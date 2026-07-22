@@ -22,7 +22,7 @@ def m_petit_n(m, n):
     return m, n, q, max(0, t)
 
 def m_mobile(m):
-    n = 15
+    n = 11
     q = 3329
     t = 2
     return m, n, q, max(0, t)
