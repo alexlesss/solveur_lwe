@@ -22,7 +22,7 @@ def m_petit_n(m, n):
     return m, n, q, max(0, t)
 
 def m_mobile(m):
-    n = 7
+    n = 15
     q = 3329
     t = 2
     return m, n, q, max(0, t)
@@ -100,6 +100,43 @@ def gen_instance_fixe(m, n, q, t):
     
     np.random.seed(None)
 
+    return A, b, q, t, s, e
+
+def gen_instance_cbd(m, n, q, t):
+    # Comme gen instance mais via cbd
+    A = np.random.randint(0, q, size=(m, n))
+    s = np.random.randint(0, q, size=n)
+
+    # Generation de e selon la CBD (Centered Binomial Distribution)
+    # a et b maximum a 2 exclus, ca nous fait deux matrices de taille m x t 
+    bits_a = np.random.randint(0, 2, size=(m, t))
+    bits_b = np.random.randint(0, 2, size=(m, t))
+    
+    # en combinant ces deux matrices, on genere e
+    e = np.sum(bits_a, axis=1) - np.sum(bits_b, axis=1)
+
+    # Calcul de b
+    b = (A @ s + e) % q 
+    
+    return A, b, q, t, s, e
+
+def gen_instance_fixe_cbd(m, n, q, t):
+    #meme code que gen instance fixe mais avec cbd
+    np.random.seed(42)
+
+    A = np.random.randint(0, q, size=(m, n))
+    s = np.random.randint(0, q, size=n)
+
+    # Generation de e selon la CBD (Centered Binomial Distribution)
+    # a et b maximum a 2 exclus, ca nous fait deux matrices de taille m x t 
+    bits_a = np.random.randint(0, 2, size=(m, t))
+    bits_b = np.random.randint(0, 2, size=(m, t))
+    
+    # en combinant ces deux matrices, on genere e
+    e = np.sum(bits_a, axis=1) - np.sum(bits_b, axis=1)
+
+    b = (A @ s + e) % q 
+    np.random.seed(None)
     return A, b, q, t, s, e
 
 

@@ -4,6 +4,7 @@ import pandas as pd
 from test_auto import verifier_solution
 from solveurs import *
 from generation import *
+np.random.seed(42)
 
 # Notre fichier de benchmark est malheureusement manuel, il pourrait etre interessant de creer une interface.
 
@@ -18,7 +19,7 @@ def test_style_instance(func, nom_test, config, nb_tests=3):
     while tests_valides < nb_tests:
         try:
             A, b, q, t, s, e = gen_instance_fixe(m, n, q, t)
-            s_hat, e_hat, nodes_exp, runtime = solve_lwe(A, b, q, t)
+            s_hat, e_hat, nodes_exp, runtime = solve_lwe_lll(A, b, q, t)
 
             if s_hat is not None:
                 valide = verifier_solution(s, e, s_hat, e_hat)
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     NOMBRE_DE_TESTS = 1
 
     # Valeurs itérées
-    valeurs_m = [10, 15, 20, 100, 125, 150] 
+    valeurs_m = [20, 25, 30, 35] 
     # Valeurs fixes (au besoin, si pas deja fixe dans generateur)
     
     for m_val in valeurs_m:
