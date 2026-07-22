@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # ainsi que le vecteur public de l'exemple
     b = np.array([8, 16, 3, 12, 9, 16, 3])
-
+    
     s_reel = np.array([0, 13, 9, 11])
 
     print(f"Paramètres : n={n}, m={m}, q={q}, t={t}")

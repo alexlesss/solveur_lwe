@@ -60,83 +60,47 @@ def relativement_bien_cond(m):
 
 # SECTION 2 - GENERATION D'INSTANCES 
 # Ces generateurs d'instances utilisent les valeurs retournees par un generateur
-# de parametres quelconque et retourne une instance LWE qui utilise ces parametres
+# de parametres quelconque et retourne une instance LWE qui utilise ces parametres   
 
-def gen_instance(m, n, q, t):
+# La premiere est avec la gaussienne troquee, plus theorique. 
+def gen_instance_gauss(m, n, q, t, seed):
+    rng = np.random.default_rng(seed)
 
-    # Generation des parametres A et s aléatoirement
-    A = np.random.randint(0, q, size=(m, n))
-    s = np.random.randint(0, q, size=n)
+    # Generation des parametres A et s 
+    A = rng.integers(0, q, size=(m, n))
+    s = rng.integers(0, q, size=n)
 
     # Generation de e selon la gaussienne tronquee
     sigma = t / 3.0
     while True:
-        e = np.round(np.random.normal(0, sigma, size= m)).astype(int)
+        e = np.round(rng.normal(0, sigma, size= m)).astype(int)
         if np.max(np.abs(e)) <= t:
             break
 
     # Calcul de b
     b = (A @ s + e) % q 
 
-    return A, b, q, t, s, e 
-
-def gen_instance_fixe(m, n, q, t):
-    #meme code que plus haut, mais on utilise un seed fixe
-    np.random.seed(42)
-
-    # Generation des parametres A et s (maintenant 100% déterministes)
-    A = np.random.randint(0, q, size=(m, n))
-    s = np.random.randint(0, q, size=n)
-
-    # Generation de e selon la gaussienne tronquee
-    sigma = t / 3.0
-    while True:
-        e = np.round(np.random.normal(0, sigma, size= m)).astype(int)
-        if np.max(np.abs(e)) <= t:
-            break
-
-    # Calcul de b
-    b = (A @ s + e) % q 
-    
-    np.random.seed(None)
-
     return A, b, q, t, s, e
 
-def gen_instance_cbd(m, n, q, t):
-    # Comme gen instance mais via cbd
-    A = np.random.randint(0, q, size=(m, n))
-    s = np.random.randint(0, q, size=n)
+
+# La seconde est avec la distribution binomiale centree.
+# Plus pratique, plus style Kyber.
+def gen_instance_cbd(m, n, q, t, seed):
+    rng = np.random.default_rng(seed)
+
+    A = rng.integers(0, q, size=(m, n))
+    s = rng.integers(0, q, size=n)
 
     # Generation de e selon la CBD (Centered Binomial Distribution)
     # a et b maximum a 2 exclus, ca nous fait deux matrices de taille m x t 
-    bits_a = np.random.randint(0, 2, size=(m, t))
-    bits_b = np.random.randint(0, 2, size=(m, t))
-    
-    # en combinant ces deux matrices, on genere e
-    e = np.sum(bits_a, axis=1) - np.sum(bits_b, axis=1)
-
-    # Calcul de b
-    b = (A @ s + e) % q 
-    
-    return A, b, q, t, s, e
-
-def gen_instance_fixe_cbd(m, n, q, t):
-    #meme code que gen instance fixe mais avec cbd
-    np.random.seed(42)
-
-    A = np.random.randint(0, q, size=(m, n))
-    s = np.random.randint(0, q, size=n)
-
-    # Generation de e selon la CBD (Centered Binomial Distribution)
-    # a et b maximum a 2 exclus, ca nous fait deux matrices de taille m x t 
-    bits_a = np.random.randint(0, 2, size=(m, t))
-    bits_b = np.random.randint(0, 2, size=(m, t))
+    bits_a = rng.integers(0, 2, size=(m, t))
+    bits_b = rng.integers(0, 2, size=(m, t))
     
     # en combinant ces deux matrices, on genere e
     e = np.sum(bits_a, axis=1) - np.sum(bits_b, axis=1)
 
     b = (A @ s + e) % q 
-    np.random.seed(None)
+    
     return A, b, q, t, s, e
 
 
