@@ -83,15 +83,15 @@ if __name__ == "__main__":
     print("DÉMARRAGE DU BENCHMARK POUR LWE")
     print("==================================================")
     
-    SEEDS_A_TESTER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]  
+    SEEDS_A_TESTER = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]  # Liste de seeds à tester
     # si on souhaite de l'alea, simplement decommenter la ligne suivante et commenter la precedente
     # SEEDS_A_TESTER = [np.random.randint(0, 10000) for _ in range(3)]
     
-    valeurs_m = [16, 17, 18, 19, 20] 
+    valeurs_m = [17, 19, 21, 23, 25]  # Liste des valeurs de m à tester
 
     # Cette option active ou desactive les details de chaque seed dans le CSV. 
     # Si False, seul la ligne moyenne est sauvegardée.
-    SAUVEGARDER_DETAILS_CSV = True
+    SAUVEGARDER_DETAILS_CSV = False
     nom_fichier = "resultats_bench.csv"
 
     for m_val in valeurs_m:
