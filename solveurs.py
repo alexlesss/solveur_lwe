@@ -83,7 +83,7 @@ def solve_lwe(A,b,q,t, time_limit=300):
     statuts_valides = [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.SOLUTION_LIMIT]
     if modele.status in statuts_valides and modele.SolCount > 0:
         # On extrait la sol e du vecteur de variable de decision x
-        e_sol = np.array([int(x[k].X) for k in range(m)])
+        e_sol = np.array([int(round(x[k].X)) for k in range(m)])
         
         # On isole la partie e0 pour retrouver s, le secret,
         # via le calcul présenté en remarque 13 et
@@ -150,7 +150,7 @@ def solve_lwe_cmod(A, b, q, t, time_limit=300):
     statuts_valides = [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.SOLUTION_LIMIT]
     if modele.status in statuts_valides and modele.SolCount > 0:
         # On extrait la sol e du vecteur de variable de decision x
-        e_sol = np.array([int(x[k].X) for k in range(m)])
+        e_sol = np.array([int(round(x[k].X)) for k in range(m)])
         
         # On isole la partie e0 pour retrouver s, le secret
         e0 = e_sol[:n]
@@ -162,91 +162,69 @@ def solve_lwe_cmod(A, b, q, t, time_limit=300):
     # Autrement, si rien n'a ete trouve:
     return None, None, nodes, runtime
 
-
-def solve_lwe_shirase_lll(A, b, q, t, time_limit=300):
+# Utilise LLL directement sur la matrice W pour réduire le problème avant de le passer à Gurobi.
+def solve_lwe_lll(A, b, q, t, time_limit=300):
+    #tout est identique
     m, n = A.shape
     m_n = m - n 
-    
     A_0 = A[0:n, :]
     A_1 = A[n:m, :]
     b_0 = b[:n]
     b_1 = b[n:]
-    
     A_0inv = np.array(Matrix(A_0).inv_mod(q)).astype(int)
     W = (A_1 @ A_0inv) % q
     u = (b_1 - W @ b_0) % q
-    
-    # 1. Centrage modulaire (Crucial pour Shirase)
     W = np.where(W > q//2, W - q, W)
     u = np.where(u > q//2, u - q, u)
 
-    # ---------------------------------------------------------
-    # 2. RÉDUCTION LLL ADAPTÉE POUR SHIRASE
-    # ---------------------------------------------------------
-    # On réduit W transposé et on extrait la matrice unimodulaire T
-    # telle que M_red = T * M_fpylll
+    # reduction LLL sur la matrice W
     M_fpylll = IntegerMatrix.from_matrix(W.T.astype(int).tolist())
     T_fpylll = IntegerMatrix.identity(n)
-    
     LLL.reduction(M_fpylll, T_fpylll)
-    
-    # Extraction vers NumPy
+
+    #on renvoie a numpy
     W_red_T = np.array([[M_fpylll[i, j] for j in range(m_n)] for i in range(n)])
     T_mat = np.array([[T_fpylll[i, j] for j in range(n)] for i in range(n)])
-    
-    # On a : W_red_T = T_mat @ W.T
-    # En transposant : W_red = W @ T_mat.T
     W_red = W_red_T.T
-    U = T_mat.T # U est notre matrice de passage telle que W_red = W @ U
+    U = T_mat.T
 
-    # ---------------------------------------------------------
-    # 3. MODÈLE GUROBI (Strictement Shirase)
-    # ---------------------------------------------------------
+    # on peut maintenant poser notre modele  
     modele = gp.Model("SolveurLWE_Shirase_LLL")
     modele.setParam('TimeLimit', time_limit)
     modele.setParam('SolutionLimit', 1)
     modele.setParam('Threads', 6)
 
-    # Tes variables originales x, avec leurs vraies bornes [-t, t]
     x = modele.addVars(m, vtype=GRB.INTEGER, lb=-t, ub=t, name="x")
-
-    # Tes variables f de modulo
     f_inf = -1 * ((t*(n*q - n + 1) + q - 1) // q)
     f_sup = (t*(n*q - n + 1)) // q
     f = modele.addVars(m_n, vtype=GRB.INTEGER, lb=f_inf, ub=f_sup, name="f")
 
-    # LA MAGIE ICI : On crée des variables z (unbounded) pour utiliser W_red
+    # pas besoin de mettre de bornes sur les z, car elles sont implicites via les contraintes liant x et z
     z = modele.addVars(n, vtype=GRB.INTEGER, lb=-GRB.INFINITY, ub=GRB.INFINITY, name="z")
-
-    # Contraintes de liaison : x0 = U * z. 
-    # Gurobi va utiliser ces équations pour borner 'z' intelligemment.
+    # ces contraintes ici
     for i in range(n):
         modele.addConstr(
             x[i] == gp.quicksum(int(U[i, j]) * z[j] for j in range(n)), 
             name=f"link_x0_z_{i}"
         )
 
-    # Les contraintes principales de Shirase, mais avec W_red et z !
-    # W_red * z - x1 + q * f = -u
+    # on ajoute les contraintes principales avec les z
     for i in range(m_n):
         cote_gauche = gp.quicksum(int(W_red[i, j]) * z[j] for j in range(n)) - x[n+i] + q * f[i]
         modele.addConstr(cote_gauche == int(-u[i]), name=f"eq_shirase_{i}")
 
-    # Fonction objectif inchangée
+    # Fonction objectif ne change pas 
     modele.setObjective(gp.quicksum(x[k]*x[k] for k in range(m)), GRB.MINIMIZE)
     modele.optimize()
 
-    # ---------------------------------------------------------
-    # 4. EXTRACTION (inchangée)
-    # ---------------------------------------------------------
     nodes = modele.NodeCount
     runtime = modele.Runtime
 
     statuts_valides = [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.SOLUTION_LIMIT]
     if modele.status in statuts_valides and modele.SolCount > 0:
-        # round() pour éviter les 0.9999 de Gurobi
+
         e_sol = np.array([int(round(x[k].X)) for k in range(m)])
-        
+
         e0 = e_sol[:n]
         s_hat = (A_0inv @ (b_0 - e0)) % q
         
@@ -256,15 +234,13 @@ def solve_lwe_shirase_lll(A, b, q, t, time_limit=300):
 
 
 def solve_lwe_bdd(A, b, q, t, time_limit=300):
+    # Tout est identique à la fonction précédente pour commencer.
     m, n = A.shape
     m_n = m - n 
-    
     A_0 = A[0:n, :]
     A_1 = A[n:m, :]
     b_0 = b[:n]
     b_1 = b[n:]
-    
-    # Calcul de W et centrage
     A_0inv = np.array(Matrix(A_0).inv_mod(q)).astype(int)
     W = (A_1 @ A_0inv) % q
     u = (b_1 - W @ b_0) % q
@@ -272,66 +248,49 @@ def solve_lwe_bdd(A, b, q, t, time_limit=300):
     W = np.where(W > q//2, W - q, W)
     u = np.where(u > q//2, u - q, u)
 
-    # ---------------------------------------------------------
-    # 1. CONSTRUCTION DU RÉSEAU PRIMAL ET RÉDUCTION LLL
-    # ---------------------------------------------------------
-    # On construit la matrice B de dimension (m x m) dont les colonnes 
-    # génèrent l'espace des solutions valides.
-    # Pour fpylll, on doit empiler ça en lignes, donc on crée B_T (B transposée).
+    # Construction de la matrice B_T pour la réduction LLL
     B_T = np.block([
         [np.eye(n, dtype=int), W.T],
         [np.zeros((m_n, n), dtype=int), q * np.eye(m_n, dtype=int)]
     ])
-    
-    # Réduction LLL sur les lignes
     M_fpylll = IntegerMatrix.from_matrix(B_T.tolist())
     LLL.reduction(M_fpylll)
     
     # On extrait la nouvelle base et on la re-transpose pour l'avoir en colonnes
-    B_red_T = np.array([[M_fpylll[i, j] for j in range(m)] for i in range(m)])
-    B_red = B_red_T.T
+    B_prime_T = np.array([[M_fpylll[i, j] for j in range(m)] for i in range(m)])
+    B_prime = B_prime_T.T
     
     # On prépare le vecteur cible u_bar (de taille m)
     u_bar = np.concatenate((np.zeros(n, dtype=int), u))
 
-    # ---------------------------------------------------------
-    # 2. MODÈLE GUROBI
-    # ---------------------------------------------------------
     modele = gp.Model("SolveurLWE_LLL")
     modele.setParam('TimeLimit', time_limit)
     modele.setParam('SolutionLimit', 1)
     modele.setParam('Threads', 6)
 
-    # Les variables d'erreur e (anciennement tes x), bornées par l'erreur LWE [-t, t]
-    e = modele.addVars(m, vtype=GRB.INTEGER, lb=-t, ub=t, name="e")
+    # Posons ensuite les variables de décision x, bornées par l'erreur[-t, t]
+    x = modele.addVars(m, vtype=GRB.INTEGER, lb=-t, ub=t, name="x")
 
-    # Les variables y: ce sont les coefficients dans notre NOUVELLE base LLL
-    # On laisse les bornes infinies, le presolve de Gurobi va les déduire
-    # à partir des bornes strictes de 'e'.
+    # Les variables y: ce sont les coefficients dans notre nouvelle base LLL
     y = modele.addVars(m, vtype=GRB.INTEGER, lb=-GRB.INFINITY, ub=GRB.INFINITY, name="y")
 
     # Contraintes : on force le vecteur e à appartenir au réseau shifté
-    # e = B_red * y + u_bar
+    # e = B_prime * y + u_bar
     for i in range(m):
         modele.addConstr(
-            e[i] == gp.quicksum(int(B_red[i, j]) * y[j] for j in range(m)) + int(u_bar[i]),
+            x[i] == gp.quicksum(int(B_prime[i, j]) * y[j] for j in range(m)) + int(u_bar[i]),
             name=f"lat_eq_{i}"
         )
 
-    # Objectif : Minimiser la norme de l'erreur
-    modele.setObjective(gp.quicksum(e[k]*e[k] for k in range(m)), GRB.MINIMIZE)
+    #meme chose pour la fin encore une fois
+    modele.setObjective(gp.quicksum(x[k]*x[k] for k in range(m)), GRB.MINIMIZE)
     modele.optimize()
-
-    # ---------------------------------------------------------
-    # 3. EXTRACTION
-    # ---------------------------------------------------------
     nodes = modele.NodeCount
     runtime = modele.Runtime
 
     statuts_valides = [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.SOLUTION_LIMIT]
     if modele.status in statuts_valides and modele.SolCount > 0:
-        # round() évite les erreurs de précision flottante de Gurobi (ex: 0.999999)
-        e_sol = np.array([int(round(e[k].X)) for k in range(m)])
+        e_sol = np.array([int(round(x[k].X)) for k in range(m)])
         
         e0 = e_sol[:n]
         s_hat = (A_0inv @ (b_0 - e0)) % q
@@ -339,5 +298,4 @@ def solve_lwe_bdd(A, b, q, t, time_limit=300):
         return s_hat, e_sol, nodes, runtime
     
     return None, None, nodes, runtime
-
 

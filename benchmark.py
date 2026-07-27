@@ -18,7 +18,7 @@ def test_instance(func, nom_test, config, seeds):
     for seed in seeds:
         try:
             A, b, q, t, s, e = gen_instance_cbd(m, n, q, t, seed)
-            s_hat, e_hat, nodes_exp, runtime = solve_lwe_cmod(A, b, q, t)
+            s_hat, e_hat, nodes_exp, runtime = solve_lwe_bdd(A, b, q, t)
 
             if s_hat is not None:
                 valide = verifier_solution(s, e, s_hat, e_hat)
@@ -83,11 +83,11 @@ if __name__ == "__main__":
     print("DÉMARRAGE DU BENCHMARK POUR LWE")
     print("==================================================")
     
-    SEEDS_A_TESTER = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]  # Liste de seeds à tester
+    SEEDS_A_TESTER = [1,2,3,4,5,6,7,8,9,10]  # Liste de seeds à tester
     # si on souhaite de l'alea, simplement decommenter la ligne suivante et commenter la precedente
     # SEEDS_A_TESTER = [np.random.randint(0, 10000) for _ in range(3)]
     
-    valeurs_m = [17, 19, 21, 23, 25]  # Liste des valeurs de m à tester
+    valeurs_m = [25, 30, 35, 40]  # Liste des valeurs de m à tester
 
     # Cette option active ou desactive les details de chaque seed dans le CSV. 
     # Si False, seul la ligne moyenne est sauvegardée.
