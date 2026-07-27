@@ -53,14 +53,33 @@ def test_instance(func, nom_test, config, seeds):
                 "nodes_count": None, "nodes_median": None, "statut": "erreur_generation"
             })
             continue
-            
+
     if runtimes: 
         tous_bons = all(succces)
-        stat_runtime = np.mean(runtimes) if tous_bons else np.max(runtimes)
-        stat_runtime_median = np.median(runtimes) if tous_bons else np.max(runtimes)
-        stat_nodes = np.mean(nodes) if tous_bons else np.max(nodes)
-        stat_nodes_median = np.median(nodes) if tous_bons else np.max(nodes)
-        statut_moyen = "resolu" if tous_bons else "non_resolu"
+        
+        # On extrait uniquement les métriques des instances résolues avec succès
+        runtimes_valides = [r for r, s in zip(runtimes, succces) if s]
+        nodes_valides = [n for n, s in zip(nodes, succces) if s]
+        
+        if runtimes_valides:
+            stat_runtime = np.mean(runtimes_valides)
+            stat_runtime_median = np.median(runtimes_valides)
+            stat_nodes = np.mean(nodes_valides)
+            stat_nodes_median = np.median(nodes_valides)
+        else:
+            # Si absolument toutes les seeds ont échoué ou time out
+            stat_runtime = None
+            stat_runtime_median = None
+            stat_nodes = None
+            stat_nodes_median = None
+            
+        # On ajuste le statut pour refléter la réalité des tests
+        if tous_bons:
+            statut_moyen = "resolu"
+        elif runtimes_valides:
+            statut_moyen = "partiellement_resolu"
+        else:
+            statut_moyen = "non_resolu"
         
         resultats_detailles.append({
             "experience": nom_test,
@@ -69,12 +88,12 @@ def test_instance(func, nom_test, config, seeds):
             "q": q,
             "t": t,
             "seed": "MOYENNE",
-            "runtime": round(stat_runtime, 4),               
-            "runtime_median": round(stat_runtime_median, 4), 
-            "nodes_count": int(np.round(stat_nodes)),        
-            "nodes_median": int(np.round(stat_nodes_median)),
+            "runtime": round(stat_runtime, 4) if stat_runtime is not None else None,               
+            "runtime_median": round(stat_runtime_median, 4) if stat_runtime_median is not None else None, 
+            "nodes_count": int(np.round(stat_nodes)) if stat_nodes is not None else None,        
+            "nodes_median": int(np.round(stat_nodes_median)) if stat_nodes_median is not None else None,
             "statut": statut_moyen
-        })
+        })   
             
     return resultats_detailles
 
@@ -83,11 +102,11 @@ if __name__ == "__main__":
     print("DÉMARRAGE DU BENCHMARK POUR LWE")
     print("==================================================")
     
-    SEEDS_A_TESTER = [1,2,3,4,5,6,7,8,9,10]  # Liste de seeds à tester
+    SEEDS_A_TESTER = [1,2,3]  # Liste de seeds à tester
     # si on souhaite de l'alea, simplement decommenter la ligne suivante et commenter la precedente
     # SEEDS_A_TESTER = [np.random.randint(0, 10000) for _ in range(3)]
     
-    valeurs_m = [25, 30, 35, 40]  # Liste des valeurs de m à tester
+    valeurs_m = [45]  # Liste des valeurs de m à tester
 
     # Cette option active ou desactive les details de chaque seed dans le CSV. 
     # Si False, seul la ligne moyenne est sauvegardée.
