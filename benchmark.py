@@ -67,11 +67,11 @@ def test_instance(func, nom_test, config, seeds):
             stat_nodes = np.mean(nodes_valides)
             stat_nodes_median = np.median(nodes_valides)
         else:
-            # Si absolument toutes les seeds ont échoué ou time out
-            stat_runtime = None
-            stat_runtime_median = None
-            stat_nodes = None
-            stat_nodes_median = None
+            # Si TOUTES les seeds ont échoué/time out, on calcule les stats sur les échecs
+            stat_runtime = np.mean(runtimes)
+            stat_runtime_median = np.median(runtimes)
+            stat_nodes = np.mean(nodes)
+            stat_nodes_median = np.median(nodes)
             
         # On ajuste le statut pour refléter la réalité des tests
         if tous_bons:
@@ -81,6 +81,7 @@ def test_instance(func, nom_test, config, seeds):
         else:
             statut_moyen = "non_resolu"
         
+        # Comme on a toujours une valeur numérique maintenant, on peut retirer les "is not None"
         resultats_detailles.append({
             "experience": nom_test,
             "m": m,
@@ -88,10 +89,10 @@ def test_instance(func, nom_test, config, seeds):
             "q": q,
             "t": t,
             "seed": "MOYENNE",
-            "runtime": round(stat_runtime, 4) if stat_runtime is not None else None,               
-            "runtime_median": round(stat_runtime_median, 4) if stat_runtime_median is not None else None, 
-            "nodes_count": int(np.round(stat_nodes)) if stat_nodes is not None else None,        
-            "nodes_median": int(np.round(stat_nodes_median)) if stat_nodes_median is not None else None,
+            "runtime": round(stat_runtime, 4),               
+            "runtime_median": round(stat_runtime_median, 4), 
+            "nodes_count": int(np.round(stat_nodes)),        
+            "nodes_median": int(np.round(stat_nodes_median)),
             "statut": statut_moyen
         })   
             
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     # si on souhaite de l'alea, simplement decommenter la ligne suivante et commenter la precedente
     # SEEDS_A_TESTER = [np.random.randint(0, 10000) for _ in range(3)]
     
-    valeurs_m = [45]  # Liste des valeurs de m à tester
+    valeurs_m = [150]  # Liste des valeurs de m à tester
 
     # Cette option active ou desactive les details de chaque seed dans le CSV. 
     # Si False, seul la ligne moyenne est sauvegardée.

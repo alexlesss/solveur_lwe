@@ -2,7 +2,8 @@ import numpy as np
 import gurobipy as gp
 from gurobipy import GRB
 from sympy import Matrix
-from fpylll import IntegerMatrix, LLL
+import math
+from fpylll import IntegerMatrix, LLL, BKZ
 
 # Dans ce fichier il est possible de trouver plusieurs solveurs, tous avec de légères différences.
 
@@ -233,7 +234,7 @@ def solve_lwe_lll(A, b, q, t, time_limit=300):
     return None, None, nodes, runtime 
 
 
-def solve_lwe_bdd(A, b, q, t, time_limit=300):
+def solve_lwe_bdd(A, b, q, t, time_limit=250):
     # Tout est identique à la fonction précédente pour commencer.
     m, n = A.shape
     m_n = m - n 
@@ -264,7 +265,7 @@ def solve_lwe_bdd(A, b, q, t, time_limit=300):
     u_bar = np.concatenate((np.zeros(n, dtype=int), u))
 
     modele = gp.Model("SolveurLWE_LLL")
-    modele.setParam('TimeLimit', time_limit)
+    modele.setParam('TimeLimit', 45)
     modele.setParam('SolutionLimit', 1)
     modele.setParam('Threads', 6)
 
@@ -298,4 +299,13 @@ def solve_lwe_bdd(A, b, q, t, time_limit=300):
         return s_hat, e_sol, nodes, runtime
     
     return None, None, nodes, runtime
+
+
+
+
+
+
+
+
+
 
